@@ -51,31 +51,7 @@ public class MainActivity extends AppCompatActivity {
                     } catch (InterruptedException e) {
                         Log.e(TAG, "handleMessage: Thread Interrupted");
                     }
-                    gameState[index] = 0;
-                    buttons[index].setText("X");
-                    buttons[index].setTextColor(Color.parseColor("#70FF4A"));
-                    currentPlayer.setText("Player One Made A Move");
-                    roundCount++;
-                    if (checkGameStatus()) {
-                        currentPlayer.setText("Player one Wins");
-                        currentPlayer.setTextColor(Color.parseColor("#70FF4A"));
-                        Toast.makeText(getApplicationContext(), "Player one Wins !",
-                                Toast.LENGTH_SHORT).show();
-                        playerOneHandler.getLooper().quit();
-                        playerTwoHandler.getLooper().quit();
-                    } else if (roundCount > 9) {
-                        if (!checkGameStatus()) {
-                            currentPlayer.setText("Its a tie");
-                            currentPlayer.setTextColor(Color.parseColor("#B960A7"));
-                            Toast.makeText(getApplicationContext(), "Game Tied!",
-                                    Toast.LENGTH_SHORT).show();
-                            playerOneHandler.getLooper().quit();
-                            playerTwoHandler.getLooper().quit();
-                        }
-                    } else {
-                        Message mssg = playerTwoHandler.obtainMessage(NEXTTURN);
-                        playerTwoHandler.sendMessage(mssg);
-                    }
+                    makeMove(index, PLAYER_ONE_TAG);
                     break;
                 }
                 case PLAYER_TWO_TAG: {
@@ -84,31 +60,7 @@ public class MainActivity extends AppCompatActivity {
                     } catch (InterruptedException e) {
                         Log.e(TAG, "handleMessage: Thread Interrupted");
                     }
-                    gameState[index] = 1;
-                    buttons[index].setText("O");
-                    buttons[index].setTextColor(Color.parseColor("#FFC34A"));
-                    currentPlayer.setText("Player Two Made A Move");
-                    roundCount++;
-                    if (checkGameStatus()) {
-                        currentPlayer.setText("Player Two Wins");
-                        currentPlayer.setTextColor(Color.parseColor("#FFC34A"));
-                        Toast.makeText(getApplicationContext(), "Player Two Wins !",
-                                Toast.LENGTH_SHORT).show();
-                        playerOneHandler.getLooper().quit();
-                        playerTwoHandler.getLooper().quit();
-                    } else if (roundCount > 9) {
-                        if (!checkGameStatus()) {
-                            currentPlayer.setText("Its a tie");
-                            currentPlayer.setTextColor(Color.parseColor("#B960A7"));
-                            Toast.makeText(getApplicationContext(), "Game Tied!",
-                                    Toast.LENGTH_SHORT).show();
-                            playerOneHandler.getLooper().quit();
-                            playerTwoHandler.getLooper().quit();
-                        }
-                    } else {
-                        Message mssg = playerOneHandler.obtainMessage(NEXTTURN);
-                        playerOneHandler.sendMessage(mssg);
-                    }
+                    makeMove(index, PLAYER_TWO_TAG);
                     break;
                 }
             }
@@ -222,6 +174,64 @@ public class MainActivity extends AppCompatActivity {
             //    Queue of playerOneHandler can be executed in sequence
             Looper.loop();
         }
+    }
+
+    public void makeMove(int index, int player){
+        if (player == PLAYER_ONE_TAG){
+            gameState[index] = 0;
+            buttons[index].setText("X");
+            buttons[index].setTextColor(Color.parseColor("#70FF4A"));
+            currentPlayer.setText("Player One Made A Move");
+            roundCount++;
+            if (checkGameStatus()) {
+                currentPlayer.setText("Player one Wins");
+                currentPlayer.setTextColor(Color.parseColor("#70FF4A"));
+                Toast.makeText(getApplicationContext(), "Player one Wins !",
+                        Toast.LENGTH_SHORT).show();
+                endLoopers();
+            } else if (roundCount > 9) {
+                if (!checkGameStatus()) {
+                    currentPlayer.setText("Its a tie");
+                    currentPlayer.setTextColor(Color.parseColor("#B960A7"));
+                    Toast.makeText(getApplicationContext(), "Game Tied!",
+                            Toast.LENGTH_SHORT).show();
+                    endLoopers();
+                }
+            } else {
+                Message mssg = playerTwoHandler.obtainMessage(NEXTTURN);
+                playerTwoHandler.sendMessage(mssg);
+            }
+        }
+        if(player == PLAYER_TWO_TAG){
+            gameState[index] = 1;
+            buttons[index].setText("O");
+            buttons[index].setTextColor(Color.parseColor("#FFC34A"));
+            currentPlayer.setText("Player Two Made A Move");
+            roundCount++;
+            if (checkGameStatus()) {
+                currentPlayer.setText("Player Two Wins");
+                currentPlayer.setTextColor(Color.parseColor("#FFC34A"));
+                Toast.makeText(getApplicationContext(), "Player Two Wins !",
+                        Toast.LENGTH_SHORT).show();
+                endLoopers();
+            } else if (roundCount > 9) {
+                if (!checkGameStatus()) {
+                    currentPlayer.setText("Its a tie");
+                    currentPlayer.setTextColor(Color.parseColor("#B960A7"));
+                    Toast.makeText(getApplicationContext(), "Game Tied!",
+                            Toast.LENGTH_SHORT).show();
+                    endLoopers();
+                }
+            } else {
+                Message mssg = playerOneHandler.obtainMessage(NEXTTURN);
+                playerOneHandler.sendMessage(mssg);
+            }
+        }
+    }
+
+    public void endLoopers(){
+        playerOneHandler.getLooper().quit();
+        playerTwoHandler.getLooper().quit();
     }
 
 }

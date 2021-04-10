@@ -10,14 +10,14 @@
     <Button
         android:id="@+id/ResetButton"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="20"
+        android:layout_height="80dp"
+        android:ems="15"
         android:text="Reset Game"
         android:backgroundTint="#d21e1e"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="40dp"/>
+        android:layout_marginTop="20dp"/>
 
 <!--    row 1-->
     <Button

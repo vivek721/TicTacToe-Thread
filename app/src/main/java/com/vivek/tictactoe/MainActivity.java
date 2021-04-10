@@ -20,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
     private final int PLAYER_ONE_TAG = 1;
     private final int PLAYER_TWO_TAG = 2;
     private final int NEXTTURN = 3;
+
     public Handler playerOneHandler;
     public Handler playerTwoHandler;
     int[] gameState = new int[9];
@@ -46,21 +47,31 @@ public class MainActivity extends AppCompatActivity {
             switch (currentState) {
                 case PLAYER_ONE_TAG: {
                     try {
-                        Thread.sleep(1500);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         Log.e(TAG, "handleMessage: Thread Interrupted");
                     }
                     gameState[index] = 0;
                     buttons[index].setText("X");
                     buttons[index].setTextColor(Color.parseColor("#70FF4A"));
-                    currentPlayer.setText("Player One Played");
+                    currentPlayer.setText("Player One Made A Move");
                     roundCount++;
                     if (checkGameStatus()) {
                         currentPlayer.setText("Player one Wins");
                         currentPlayer.setTextColor(Color.parseColor("#70FF4A"));
-                        Toast.makeText(getApplicationContext(), "Player one Wins !", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "Player one Wins !",
+                                Toast.LENGTH_SHORT).show();
                         playerOneHandler.getLooper().quit();
                         playerTwoHandler.getLooper().quit();
+                    } else if (roundCount > 9) {
+                        if (!checkGameStatus()) {
+                            currentPlayer.setText("Its a tie");
+                            currentPlayer.setTextColor(Color.parseColor("#B960A7"));
+                            Toast.makeText(getApplicationContext(), "Game Tied!",
+                                    Toast.LENGTH_SHORT).show();
+                            playerOneHandler.getLooper().quit();
+                            playerTwoHandler.getLooper().quit();
+                        }
                     } else {
                         Message mssg = playerTwoHandler.obtainMessage(NEXTTURN);
                         playerTwoHandler.sendMessage(mssg);
@@ -69,35 +80,36 @@ public class MainActivity extends AppCompatActivity {
                 }
                 case PLAYER_TWO_TAG: {
                     try {
-                        Thread.sleep(1500);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         Log.e(TAG, "handleMessage: Thread Interrupted");
                     }
                     gameState[index] = 1;
                     buttons[index].setText("O");
                     buttons[index].setTextColor(Color.parseColor("#FFC34A"));
-                    currentPlayer.setText("Player Two Played");
+                    currentPlayer.setText("Player Two Made A Move");
                     roundCount++;
                     if (checkGameStatus()) {
                         currentPlayer.setText("Player Two Wins");
                         currentPlayer.setTextColor(Color.parseColor("#FFC34A"));
-                        Toast.makeText(getApplicationContext(), "Player Two Wins !", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "Player Two Wins !",
+                                Toast.LENGTH_SHORT).show();
                         playerOneHandler.getLooper().quit();
                         playerTwoHandler.getLooper().quit();
+                    } else if (roundCount > 9) {
+                        if (!checkGameStatus()) {
+                            currentPlayer.setText("Its a tie");
+                            currentPlayer.setTextColor(Color.parseColor("#B960A7"));
+                            Toast.makeText(getApplicationContext(), "Game Tied!",
+                                    Toast.LENGTH_SHORT).show();
+                            playerOneHandler.getLooper().quit();
+                            playerTwoHandler.getLooper().quit();
+                        }
                     } else {
                         Message mssg = playerOneHandler.obtainMessage(NEXTTURN);
                         playerOneHandler.sendMessage(mssg);
                     }
                     break;
-                }
-            }
-            if (roundCount > 9) {
-                if (!checkGameStatus()) {
-                    currentPlayer.setText("Its a tie");
-                    currentPlayer.setTextColor(Color.parseColor("#B960A7"));
-                    Toast.makeText(getApplicationContext(), "Game Tied!", Toast.LENGTH_SHORT).show();
-                    playerOneHandler.getLooper().quit();
-                    playerTwoHandler.getLooper().quit();
                 }
             }
         }
@@ -176,9 +188,8 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "run: thread 1 index = " + index);
             playerOneHandler = new Handler(Looper.myLooper()) {
                 public void handleMessage(Message msg) {
-                    int index = randomSelector();
-                    Log.i(TAG, "handleMessage: Thread 1 index = " + index);
                     if (msg.what == NEXTTURN) {
+                        int index = randomSelector();
                         Message mssg = uiHandler.obtainMessage(PLAYER_ONE_TAG);
                         mssg.arg1 = index;
                         uiHandler.sendMessage(mssg);
@@ -198,9 +209,8 @@ public class MainActivity extends AppCompatActivity {
             Looper.prepare();
             playerTwoHandler = new Handler(Looper.myLooper()) {
                 public void handleMessage(Message msg) {
-                    int index = randomSelector();
-                    Log.i(TAG, "handleMessage: Thread 2 index = " + index);
                     if (msg.what == NEXTTURN) {
+                        int index = randomSelector();
                         Message mssg = uiHandler.obtainMessage(PLAYER_TWO_TAG);
                         mssg.arg1 = index;
                         uiHandler.sendMessage(mssg);

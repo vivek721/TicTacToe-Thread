@@ -20,11 +20,12 @@ public class MainActivity extends AppCompatActivity {
     private final int PLAYER_ONE_TAG = 1;
     private final int PLAYER_TWO_TAG = 2;
     private final int NEXTTURN = 3;
+    private final int SLEEPTIME = 500;
     public Handler playerOneHandler;
     public Handler playerTwoHandler;
     public ArrayList<Integer> randomSelector = new ArrayList<Integer>();
     ArrayList<Integer> movesPlayed = new ArrayList<Integer>();
-    int rowVal = 0;
+    int randVal = 0;
     private int roundCount;
     private int randomNumberIndexSelector;
     private int greedyNumber;
@@ -41,25 +42,20 @@ public class MainActivity extends AppCompatActivity {
     private Thread playerTwoThread;
     private Handler uiHandler = new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message msg) {
+            try {
+                Thread.sleep(SLEEPTIME);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "handleMessage: Thread Interrupted");
+            }
             Log.i(TAG, "inside UIHandler");
             int currentState = msg.what;
             int index = (int) msg.arg1; //arg1 contains the index of button
             switch (currentState) {
                 case PLAYER_ONE_TAG: {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        Log.e(TAG, "handleMessage: Thread Interrupted");
-                    }
                     changeMoveOnBoard(index, PLAYER_ONE_TAG);
                     break;
                 }
                 case PLAYER_TWO_TAG: {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        Log.e(TAG, "handleMessage: Thread Interrupted");
-                    }
                     changeMoveOnBoard(index, PLAYER_TWO_TAG);
                     break;
                 }
@@ -77,33 +73,28 @@ public class MainActivity extends AppCompatActivity {
             int buttonId = getResources().getIdentifier(idString, "id", getPackageName());
             buttons[i] = this.findViewById(buttonId);
         }
+        currentPlayer = (TextView) findViewById(R.id.currentPlayer);
 
         resetButton = this.findViewById(R.id.ResetButton);
         resetButton.setOnClickListener(v -> {
             //resets the game to initial stage
-            resetGame();
+
+            uiHandler.removeCallbacksAndMessages(null);
             // start thread 1
             if (playerOneThread != null && playerOneThread.isAlive()) {
                 Log.i(TAG + " : ThreadStatus", "Thread 1 is alive");
                 /* The message queues of the handlers are getting cleared
                 as New Game is to be started */
                 playerOneHandler.removeCallbacksAndMessages(null);
-                playerOneThread.interrupt();
-                uiHandler.removeCallbacksAndMessages(null);
-                // Starting Thread 1 again for new game
+
             }
             // start thread 2
             if (playerTwoThread != null && playerTwoThread.isAlive()) {
                 Log.i(TAG + " : ThreadStatus", "Thread 2 is alive");
                 /* The message queues of the handlers are getting cleared as New Game is to be started */
                 playerTwoHandler.removeCallbacksAndMessages(null);
-                playerTwoThread.interrupt();
-                uiHandler.removeCallbacksAndMessages(null);
-                playerTwoHandler.getLooper().quit();
-
-                // Starting Thread 2 again for New Game
             }
-
+            resetGame();
             playerOneThread = new Thread(new PlayerOneThread());
             playerOneThread.start();
             playerTwoThread = new Thread(new PlayerTwoThread());
@@ -111,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
-        currentPlayer = (TextView) findViewById(R.id.currentPlayer);
+
     }
 
     // This method resets the board and starts a new game between the threads.
@@ -131,11 +122,13 @@ public class MainActivity extends AppCompatActivity {
     private Boolean checkGameStatus() {
         boolean winnerResult = false;
         Log.i(TAG, "checkGameStatus: " + movesPlayed);
-        for (int[] winningPosition : winningCombo) {
-            if (movesPlayed.get(winningPosition[0]) == movesPlayed.get(winningPosition[1]) &&
-                    movesPlayed.get(winningPosition[1]) == movesPlayed.get(winningPosition[2]) &&
-                    movesPlayed.get(winningPosition[0]) != 2) {
-                winnerResult = true;
+        synchronized (movesPlayed) {
+            for (int[] winningPosition : winningCombo) {
+                if (movesPlayed.get(winningPosition[0]) == movesPlayed.get(winningPosition[1]) &&
+                        movesPlayed.get(winningPosition[1]) == movesPlayed.get(winningPosition[2]) &&
+                        movesPlayed.get(winningPosition[0]) != 2) {
+                    winnerResult = true;
+                }
             }
         }
         return winnerResult;
@@ -144,38 +137,38 @@ public class MainActivity extends AppCompatActivity {
     // This is player one strategy which returns a random number for player 1's move
     public int playerOneStrategy() {
         Random r = new Random();
-        synchronized (r) {
+        synchronized (movesPlayed) {
             while (true) {
-                rowVal = r.nextInt(9 - 0) + 0; // gets a random value between 0 and 9
-                randomSelector.add(rowVal);
+                randVal = r.nextInt(9 - 0) + 0; // gets a random value between 0 and 9
+                randomSelector.add(randVal);
             /*if(!randomIndices.contains(rowVal))
                 return random;*/
-
-                if (movesPlayed.get(rowVal) == 2) {
+                if (movesPlayed.get(randVal) == 2) {
                     break; // break the while loop if there is no value at the chosen
                 }
             }
         }
-        Log.i(TAG, "playerOneStrategy: random value = " + rowVal);
-        return rowVal;
+        Log.i(TAG, "playerOneStrategy: random value = " + randVal);
+        return randVal;
     }
 
     // This is player one strategy which uses minMax algorithm and returns number for player 1's move
     public int playerTwoStrategy() {
-        StringBuilder gameString = new StringBuilder();
-        for (int i : movesPlayed) {
-            if (i == 1) {
-                gameString.append("X ");
-            } else if (i == 0) {
-                gameString.append("O ");
-            } else {
-                gameString.append("b ");
+        synchronized (movesPlayed) {
+            StringBuilder gameString = new StringBuilder();
+            for (int i : movesPlayed) {
+                if (i == 1) {
+                    gameString.append("X ");
+                } else if (i == 0) {
+                    gameString.append("O ");
+                } else {
+                    gameString.append("b ");
+                }
             }
+            AI_MinMax minMax = new AI_MinMax(gameString.toString());
+            greedyNumber = minMax.ans - 1;
+            return greedyNumber;
         }
-        AI_MinMax minMax = new AI_MinMax(gameString.toString());
-        greedyNumber = minMax.ans - 1;
-
-        return greedyNumber;
     }
 
     // uiHandler calls this to handle the player
@@ -183,59 +176,60 @@ public class MainActivity extends AppCompatActivity {
         roundCount++;
         Log.i(TAG, "changeMoveOnBoard: " + roundCount);
         // Player 1 uiHandler
-        if (player == PLAYER_ONE_TAG) {
-            movesPlayed.set(index, 0);
-            buttons[index].setText("X");
-            buttons[index].setTextColor(Color.parseColor("#70FF4A"));
-            currentPlayer.setText("Player One Made A Move");
-            if (checkGameStatus()) {
-                Log.i(TAG, "changeMoveOnBoard: player 1 if condition ");
-                currentPlayer.setText("Player one Wins");
-                currentPlayer.setTextColor(Color.parseColor("#70FF4A"));
-                Toast.makeText(getApplicationContext(), "Player one Wins !",
-                        Toast.LENGTH_SHORT).show();
-                endLoopers();
-            } else if (roundCount >= 9) {
-                Log.i(TAG, "changeMoveOnBoard: inside roundCount > 9 : ");
-                if (!checkGameStatus()) {
-                    currentPlayer.setText("Its a tie");
-                    currentPlayer.setTextColor(Color.parseColor("#B960A7"));
-                    Toast.makeText(getApplicationContext(), "Game Tied!",
+        synchronized (movesPlayed) {
+            if (player == PLAYER_ONE_TAG) {
+                movesPlayed.set(index, 0);
+                buttons[index].setText("X");
+                buttons[index].setTextColor(Color.parseColor("#70FF4A"));
+                currentPlayer.setText("Player One Made A Move");
+                if (checkGameStatus()) {
+                    Log.i(TAG, "changeMoveOnBoard: player 1 if condition ");
+                    currentPlayer.setText("Player one Wins");
+                    currentPlayer.setTextColor(Color.parseColor("#70FF4A"));
+                    Toast.makeText(getApplicationContext(), "Player one Wins !",
                             Toast.LENGTH_SHORT).show();
                     endLoopers();
+                } else if (roundCount >= 9) {
+                    Log.i(TAG, "changeMoveOnBoard: inside roundCount > 9 : ");
+                    if (!checkGameStatus()) {
+                        currentPlayer.setText("Its a tie");
+                        currentPlayer.setTextColor(Color.parseColor("#B960A7"));
+                        Toast.makeText(getApplicationContext(), "Game Tied!",
+                                Toast.LENGTH_SHORT).show();
+                        endLoopers();
+                    }
+                } else {
+                    Log.i(TAG, "changeMoveOnBoard: else part : ");
+                    Message mssg = playerTwoHandler.obtainMessage(NEXTTURN);
+                    playerTwoHandler.sendMessage(mssg);
                 }
-            } else {
-                Log.i(TAG, "changeMoveOnBoard: else part : ");
-                Message mssg = playerTwoHandler.obtainMessage(NEXTTURN);
-                playerTwoHandler.sendMessage(mssg);
             }
-        }
-        // Player 1 uiHandler
-        if (player == PLAYER_TWO_TAG) {
-            Log.i(TAG, "changeMoveOnBoard: " + index);
-            if (index != -1) {
+            // Player 1 uiHandler
+            if (player == PLAYER_TWO_TAG) {
+                Log.i(TAG, "changeMoveOnBoard: " + index);
                 movesPlayed.set(index, 1);
                 buttons[index].setText("O");
                 buttons[index].setTextColor(Color.parseColor("#FFC34A"));
                 currentPlayer.setText("Player Two Made A Move");
-            }
-            if (checkGameStatus()) {
-                currentPlayer.setText("Player Two Wins");
-                currentPlayer.setTextColor(Color.parseColor("#FFC34A"));
-                Toast.makeText(getApplicationContext(), "Player Two Wins !",
-                        Toast.LENGTH_SHORT).show();
-                endLoopers();
-            } else if (roundCount >= 9) {
-                if (!checkGameStatus()) {
-                    currentPlayer.setText("Its a tie");
-                    currentPlayer.setTextColor(Color.parseColor("#B960A7"));
-                    Toast.makeText(getApplicationContext(), "Game Tied!",
+
+                if (checkGameStatus()) {
+                    currentPlayer.setText("Player Two Wins");
+                    currentPlayer.setTextColor(Color.parseColor("#FFC34A"));
+                    Toast.makeText(getApplicationContext(), "Player Two Wins !",
                             Toast.LENGTH_SHORT).show();
                     endLoopers();
+                } else if (roundCount >= 9) {
+                    if (!checkGameStatus()) {
+                        currentPlayer.setText("Its a tie");
+                        currentPlayer.setTextColor(Color.parseColor("#B960A7"));
+                        Toast.makeText(getApplicationContext(), "Game Tied!",
+                                Toast.LENGTH_SHORT).show();
+                        endLoopers();
+                    }
+                } else {
+                    Message mssg = playerOneHandler.obtainMessage(NEXTTURN);
+                    playerOneHandler.sendMessage(mssg);
                 }
-            } else {
-                Message mssg = playerOneHandler.obtainMessage(NEXTTURN);
-                playerOneHandler.sendMessage(mssg);
             }
         }
     }
@@ -284,9 +278,11 @@ public class MainActivity extends AppCompatActivity {
             //thread 2 handler
             playerTwoHandler = new Handler(Looper.myLooper()) {
                 public void handleMessage(Message msg) {
-
                     if (msg.what == NEXTTURN) {
                         int index = playerTwoStrategy();
+                        if (index == -1) {
+                            return;
+                        }
                         Message mssg = uiHandler.obtainMessage(PLAYER_TWO_TAG);
                         mssg.arg1 = index;
                         uiHandler.sendMessage(mssg);
